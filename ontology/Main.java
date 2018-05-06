@@ -15,11 +15,7 @@ import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.query.*;
 
 import java.util.*;
-import java.io.File;
-import java.io.IOException;
-
-import ontology.Loader;
-
+import java.io.*;
 
 public class Main {
 
@@ -34,9 +30,9 @@ public class Main {
           int cnt = 0;
           while (iter.hasNext()) {
                OntResource resource = (OntResource)iter.next();
-               if (cnt < 5) {
-                    System.out.println(resource.getURI());
-               }
+               // if (cnt < 5) {
+               //      System.out.println(resource.getURI());
+               // }
                cnt++;
           }
           return cnt;
@@ -73,7 +69,7 @@ public class Main {
      }
 
      public static void statConcepts(OntModel model, String tag) {
-          System.out.println("----- " + tag + " classes & properties -----");
+          System.out.println("\n----- " + tag + " classes & properties -----");
           Iterator<OntClass> allClassIter = model.listClasses();
           System.out.println("Count classes: " + count(allClassIter));
           Iterator<OntProperty> allPropertyIter = model.listAllOntProperties();
@@ -85,13 +81,13 @@ public class Main {
      }
 
      public static void statIndividuals(OntModel model, String tag) {
-          System.out.println("----- " + tag + " individuals -----");
+          System.out.println("\n----- " + tag + " individuals -----");
           Iterator<Individual> allIndividuals = model.listIndividuals();
           System.out.println("Individuals: " + count(allIndividuals));
      }
 
      public static void statOccurrences(OntModel model, String tag) {
-          System.out.println("----- " + tag + " occurrences -----");
+          System.out.println("\n----- " + tag + " occurrences -----");
           StmtIterator iter = model.listStatements();
           HashMap<String, Integer> subjCounter = new HashMap<String, Integer>();
           HashMap<String, Integer> predCounter = new HashMap<String, Integer>();
@@ -107,11 +103,11 @@ public class Main {
                     addOne(objCounter, object.asResource().getURI());
                }
           }
-          System.out.println("Subject Counter");
+          System.out.println(tag + ": Subject Counter");
           sortCounter(subjCounter, 8);
-          System.out.println("Predicate Counter");
+          System.out.println(tag + ": Predicate Counter");
           sortCounter(predCounter, 8);
-          System.out.println("Object Counter");
+          System.out.println(tag + ": Object Counter");
           sortCounter(objCounter, 8);
 
           OntClass cls = model.getOntClass("http://www.w3.org/2002/07/owl#Thing");
@@ -125,11 +121,48 @@ public class Main {
                }
                subClsCounter.put(objectURI, value);
           }
-          System.out.println("Subclass Counter of #Thing");
+          System.out.println(tag + ": Subclass Counter of #Thing");
           sortCounter(subClsCounter, 8);
      }
 
-     public static void run(OntModel model, OntModel[] subModels, String type, String extra) {
+     public static void runSparql(OntModel model, String sparqlFilePath) {
+          String content = null;
+          try (Scanner scanner = new Scanner(new File(sparqlFilePath))) {
+               content = scanner.useDelimiter("\\Z").next();
+          } catch (IOException e) {
+               e.printStackTrace();
+               return;
+          }
+          System.out.println("\n----- " + sparqlFilePath + " -----");
+          System.out.println(content);
+          long startTime = System.currentTimeMillis();
+          Query query = QueryFactory.create(content);
+          QueryExecution qexec = QueryExecutionFactory.create(query, model);
+          try {
+               ResultSet results = qexec.execSelect();
+               ResultSetFormatter.out(results, model);
+          } finally {
+               qexec.close();
+          }
+          long stopTime = System.currentTimeMillis();
+          long elapsedTime = stopTime - startTime;
+          System.out.println("Elapsed Time: " + elapsedTime + "ms");
+     }
+
+     public static void writeOwl(OntModel model, String savePath) {
+          BufferedWriter out = null;
+          try {
+               out = new BufferedWriter(new FileWriter(savePath));
+               model.write(out, "RDF/XML");
+               System.out.println("Saved " + savePath);
+               out.close();
+          } catch (IOException e) {
+               e.printStackTrace();
+          }
+     }
+
+     public static void run(OntModel model, OntModel[] subModels,
+                            String type, String extra) {
           for (OntModel subModel: subModels) {
                model.addSubModel(subModel);
           }
@@ -149,73 +182,52 @@ public class Main {
           }
      }
 
-     public static void runSparql(OntModel model, String sparqlFilePath) {
-          String content = null;
-          try (Scanner scanner = new Scanner(new File(sparqlFilePath))) {
-               content = scanner.useDelimiter("\\Z").next();
-          } catch (IOException e) {
-               e.printStackTrace();
-               return;
-          }
-          System.out.println("----- " + sparqlFilePath + " -----");
-          System.out.println(content);
-          long startTime = System.currentTimeMillis();
-          Query query = QueryFactory.create(content);
-          QueryExecution qexec = QueryExecutionFactory.create(query, model);
-          try {
-               ResultSet results = qexec.execSelect();
-               ResultSetFormatter.out(results, model);
-          }
-          finally {
-               qexec.close();
-          }
-          long stopTime = System.currentTimeMillis();
-          long elapsedTime = stopTime - startTime;
-          System.out.println("Elapsed Time: " + elapsedTime + "ms");
-     }
-
      public static void main(String[] args) {
 
-          String resourceDir = "toy-resources/";
+          String resourceDir = "cache/";
 
           OntModel base = load(resourceDir + "dbpedia_2016-10.nt");
-          // OntModel insTypesEn = load(resourceDir + "instance_types_en.ttl");
-          // OntModel insTypesFr = load(resourceDir + "instance_types_fr.ttl");
-          // OntModel mapLiteralEn = load(resourceDir + "mappingbased_literals_en.ttl");
-          // OntModel mapObjEn = load(resourceDir + "mappingbased_objects_en.ttl");
+          OntModel insTypesEn = load(resourceDir + "instance_types_en.ttl");
+          OntModel insTypesFr = load(resourceDir + "instance_types_fr.ttl");
+          OntModel mapLiteralEn = load(resourceDir + "mappingbased_literals_en.ttl");
+          OntModel mapObjEn = load(resourceDir + "mappingbased_objects_en.ttl");
 
-          // OntModel mapLiteralFr = load(resourceDir + "mappingbased_literals_fr.ttl");
-          // OntModel mapObjFr = load(resourceDir + "mappingbased_objects_fr.ttl");
-          // OntModel interLangEn= load(resourceDir + "interlanguage_links_en.ttl");
-          // OntModel interLangFr= load(resourceDir + "interlanguage_links_fr.ttl");
+          OntModel mapLiteralFr = load(resourceDir + "mappingbased_literals_fr.ttl");
+          OntModel mapObjFr = load(resourceDir + "mappingbased_objects_fr.ttl");
+          OntModel interLangEn= load(resourceDir + "interlanguage_links_en.ttl");
 
-          // OntModel[] enEnv = {insTypesEn};
-          // run(base, enEnv, "concepts", "en");
-          // run(base, enEnv, "individuals", "en");
+          OntModel[] allEnv = {insTypesEn, insTypesFr};
+          run(base, allEnv, "concepts", "all");
+          run(base, allEnv, "individuals", "all");
 
-          // OntModel[] frEnv = {insTypesFr};
-          // run(base, frEnv, "concepts", "fr");
-          // run(base, frEnv, "individuals", "fr");
+          OntModel[] enEnv = {insTypesEn};
+          run(base, enEnv, "individuals", "en");
 
-          // OntModel[] allEnv = {insTypesEn, insTypesFr};
-          // run(base, allEnv, "concepts", "all");
-          // run(base, allEnv, "individuals", "all");
+          OntModel[] frEnv = {insTypesFr};
+          run(base, frEnv, "individuals", "fr");
 
-          // OntModel[] enOccurEnv = {insTypesEn, mapLiteralEn, mapObjEn};
-          // run(base, enOccurEnv, "occurrences", "en");
-          // OntModel[] frOccurEnv = {insTypesFr, mapLiteralFr, mapObjFr};
-          // run(base, frOccurEnv, "occurrences", "fr");
+          OntModel[] enOccurEnv = {insTypesEn, mapLiteralEn, mapObjEn};
+          run(base, enOccurEnv, "occurrences", "en");
+          OntModel[] frOccurEnv = {insTypesFr, mapLiteralFr, mapObjFr};
+          run(base, frOccurEnv, "occurrences", "fr");
+          OntModel[] allOccurEnv = {insTypesEn, mapLiteralEn, mapObjEn,
+                                    insTypesFr, mapLiteralFr, mapObjFr};
+          run(base, allOccurEnv, "occurrences", "all");
 
           // SPARQL
 
-          // OntModel[] sparqlSameasEnv = {insTypesEn, insTypesFr, interLangEn};
-          // run(base, sparqlSameasEnv, "sparql", "sparql/sameas.rq");
+          OntModel[] baseEnv = {};
+          run(base, baseEnv, "sparql", "sparql/domainrange.rq");
+          run(base, baseEnv, "sparql", "sparql/subclass.rq");
+          run(base, baseEnv, "sparql", "sparql/count_relation.rq");
 
-          // OntModel[] sparqlDomainEnv = {};
-          // run(base, sparqlDomainEnv, "sparql", "sparql/domainrange.rq");
+          OntModel[] resourceEnv = {insTypesEn, mapLiteralEn};
+          run(base, resourceEnv, "sparql", "sparql/resource.rq");
 
-          OntModel[] sparqlDomainEnv = {};
-          run(base, sparqlDomainEnv, "sparql", "sparql/subclass.rq");
+          OntModel[] sparqlSameasEnv = {insTypesEn, insTypesFr, interLangEn};
+          run(base, sparqlSameasEnv, "sparql", "sparql/sameas.rq");
 
+          // Save Model (only the base?)
+          // writeOwl(base, "output/ontology.owl");
      }
 }

@@ -1,3 +1,0 @@
-select distinct ?Concept where {
-  [] a ?Concept
-} limit 10

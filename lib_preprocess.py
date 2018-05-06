@@ -25,7 +25,7 @@ def prepr_concepts(lines):
     dbpedia_lines = []
     p_counter = {}
     for line in lines:
-        subj, rel, obj  = triple(line)
+        subj, rel, obj = triple(line)
         if rel in [domain_rel, range_rel]:
             p_counter[subj] = p_counter.get(subj, 0) + 1
             if p_counter[subj] == 2:
@@ -33,9 +33,9 @@ def prepr_concepts(lines):
         elif rel == type_rel and obj == owl_class:
             classes.add(subj)
     for line in lines:
-        subj, rel, obj  = triple(line)
-        if (rel in [domain_rel, range_rel] and subj in properties) or \
-           (rel == type_rel and obj == owl_class):
+        subj, rel, obj = triple(line)
+        if (subj in properties) or \
+           (subj in classes):
             dbpedia_lines.append(line)
     return classes, properties, dbpedia_lines
 

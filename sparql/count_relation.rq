@@ -1,8 +1,10 @@
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
-SELECT (COUNT(?predicate) AS ?count_predicate_with_domain_range)
+SELECT ?predicate (COUNT(?predicate) AS ?predicate_occurence)
 WHERE {
-  ?predicate rdfs:domain ?domain .
-  ?predicate rdfs:range ?range .
+  ?subject ?predicate ?object .
 }
+GROUP BY ?predicate
+ORDER BY DESC(?predicate_occurence)
+LIMIT 20
