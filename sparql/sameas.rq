@@ -1,0 +1,7 @@
+PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+PREFIX owl: <http://www.w3.org/2002/07/owl#>
+SELECT (COUNT(?subject) AS ?total) WHERE {
+  ?subject owl:sameAs ?object .
+  ?subject rdf:type ?type1 .
+  ?object rdf:type ?type2 .
+}
